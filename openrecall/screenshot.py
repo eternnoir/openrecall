@@ -58,29 +58,30 @@ def record_screenshots_thread():
     last_screenshots = take_screenshots()
 
     while True:
-    
-        screenshots = take_screenshots()
-    
-        for i, screenshot in enumerate(screenshots):
-            
-            last_screenshot = last_screenshots[i]
-
-            if not is_similar(screenshot, last_screenshot):
-                last_screenshots[i] = screenshot
-                image = Image.fromarray(screenshot)
-                timestamp = int(time.time())
-
-                image.save(
-                    os.path.join(screenshots_path, f"{timestamp}.webp"),
-                    format="webp",
-                    lossless=True,
-                )
-                text = extract_text_from_image(screenshot)
-                embedding = get_embedding(text)
-                active_app_name = get_active_app_name()
-                active_window_title = get_active_window_title()
-                insert_entry(
-                    text, timestamp, embedding, active_app_name, active_window_title
-                )
+        try:
+            screenshots = take_screenshots()
+        
+            for i, screenshot in enumerate(screenshots):
                 
+                last_screenshot = last_screenshots[i]
+
+                if not is_similar(screenshot, last_screenshot):
+                    last_screenshots[i] = screenshot
+                    image = Image.fromarray(screenshot)
+                    timestamp = int(time.time())
+
+                    image.save(
+                        os.path.join(screenshots_path, f"{timestamp}.webp"),
+                        format="webp",
+                        optimize=True,
+                    )
+                    text = extract_text_from_image(screenshot)
+                    embedding = get_embedding(text)
+                    active_app_name = get_active_app_name()
+                    active_window_title = get_active_window_title()
+                    insert_entry(
+                        text, timestamp, embedding, active_app_name, active_window_title
+                    )
+        except Exception as e:
+            print(e)
         time.sleep(3)

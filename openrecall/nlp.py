@@ -3,7 +3,8 @@ from sentence_transformers import SentenceTransformer
 
 
 def get_embedding(text):
-    model = SentenceTransformer("all-MiniLM-L6-v2")
+    # model = SentenceTransformer("all-MiniLM-L6-v2")
+    model = SentenceTransformer("distiluse-base-multilingual-cased-v1")
     sentences = text.split("\n")
     sentence_embeddings = model.encode(sentences)
     mean = np.mean(sentence_embeddings, axis=0)
