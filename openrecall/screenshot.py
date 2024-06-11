@@ -69,6 +69,7 @@ def record_screenshots_thread():
                 last_screenshots[i] = screenshot
                 image = Image.fromarray(screenshot)
                 timestamp = int(time.time())
+
                 image.save(
                     os.path.join(screenshots_path, f"{timestamp}.webp"),
                     format="webp",

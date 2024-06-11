@@ -5,7 +5,7 @@ from flask import Flask, render_template_string, request, send_from_directory
 from jinja2 import BaseLoader
 
 from openrecall.config import appdata_folder, screenshots_path
-from openrecall.database import create_db, get_all_entries, get_timestamps
+from openrecall.database import create_db, get_all_entries, get_timestamps, search_entries
 from openrecall.nlp import cosine_similarity, get_embedding
 from openrecall.screenshot import record_screenshots_thread
 from openrecall.utils import human_readable_time, timestamp_to_human_readable
@@ -136,14 +136,15 @@ def timeline():
 @app.route("/search")
 def search():
     q = request.args.get("q")
-    entries = get_all_entries()
-    embeddings = [
-        np.frombuffer(entry.embedding, dtype=np.float64) for entry in entries
-    ]
-    query_embedding = get_embedding(q)
-    similarities = [cosine_similarity(query_embedding, emb) for emb in embeddings]
-    indices = np.argsort(similarities)[::-1]
-    sorted_entries = [entries[i] for i in indices]
+    # entries = get_all_entries()
+    # embeddings = [
+    #     np.frombuffer(entry.embedding, dtype=np.float64) for entry in entries
+    # ]
+    # query_embedding = get_embedding(q)
+    # similarities = [cosine_similarity(query_embedding, emb) for emb in embeddings]
+    # indices = np.argsort(similarities)[::-1]
+    # sorted_entries = [entries[i] for i in indices]
+    sorted_entries = search_entries(q)
 
     return render_template_string(
         """

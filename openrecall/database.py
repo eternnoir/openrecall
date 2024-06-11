@@ -24,6 +24,16 @@ def get_all_entries() -> List[Entry]:
         return [Entry(*result) for result in results]
 
 
+def search_entries(query: str) -> List[Entry]:
+    with sqlite3.connect(db_path) as conn:
+        c = conn.cursor()
+        results = c.execute(
+            "SELECT * FROM entries WHERE text LIKE ? ORDER BY timestamp DESC",
+            (f"%{query}%",),
+        ).fetchall()
+        return [Entry(*result) for result in results]
+
+
 def get_timestamps() -> List[int]:
     with sqlite3.connect(db_path) as conn:
         c = conn.cursor()
@@ -34,7 +44,7 @@ def get_timestamps() -> List[int]:
 
 
 def insert_entry(
-    text: str, timestamp: int, embedding: Any, app: str, title: str
+        text: str, timestamp: int, embedding: Any, app: str, title: str
 ) -> None:
     embedding_bytes = embedding.tobytes()
     with sqlite3.connect(db_path) as conn:
