@@ -1,11 +1,12 @@
+from datetime import datetime, timedelta
 from threading import Thread
 
 import numpy as np
-from flask import Flask, render_template_string, request, send_from_directory
+from flask import Flask, render_template_string, request, send_from_directory, Response
 from jinja2 import BaseLoader
 
 from openrecall.config import appdata_folder, screenshots_path
-from openrecall.database import create_db, get_all_entries, get_timestamps, search_entries
+from openrecall.database import create_db, get_all_entries, get_timestamps, search_entries, get_sampled_entries
 from openrecall.nlp import cosine_similarity, get_embedding
 from openrecall.screenshot import record_screenshots_thread
 from openrecall.utils import human_readable_time, timestamp_to_human_readable
@@ -132,19 +133,53 @@ def timeline():
         timestamps=timestamps,
     )
 
+# new route for download the text between two timestamps and how many row between them
+# extract the text between two timestamps. and provide a file.
+# file format
+# <Screenshot 2024/06/12/06:05:57>
+# </Screenshot>
+@app.route("/download")
+def Download():
+    start_time = request.args.get("start_time")
+    end_time = request.args.get("end_time")
+    if not start_time:
+        start_time = (datetime.now() - timedelta(hours=24)).timestamp()
+    else:
+        start_time = int(start_time)
+
+    if not end_time:
+        end_time = datetime.now().timestamp()
+    else:
+        end_time = int(end_time)
+    result = get_sampled_entries(int(start_time), int(end_time), 100)
+    formatted_entries = []
+    for row in result:
+        timestamp_str = datetime.fromtimestamp(row.timestamp).strftime("%Y/%m/%d/%H:%M:%S")
+        formatted_entry = f"<Screenshot {timestamp_str}>\n{row.text}\n</Screenshot {timestamp_str}>\n"
+        formatted_entries.append(formatted_entry)
+
+    # Join all formatted entries into a single string
+    formatted_output = "\n".join(formatted_entries)
+    # return formatted_output as file name "output.txt"
+    return Response(
+        formatted_output,
+        mimetype="text/plain",
+        headers={"Content-disposition": "attachment; filename=output.txt"},
+    )
+
 
 @app.route("/search")
 def search():
     q = request.args.get("q")
-    entries = get_all_entries()
-    embeddings = [
-        np.frombuffer(entry.embedding, dtype=np.float64) for entry in entries
-    ]
-    query_embedding = get_embedding(q)
-    similarities = [cosine_similarity(query_embedding, emb) for emb in embeddings]
-    indices = np.argsort(similarities)[::-1]
-    sorted_entries = [entries[i] for i in indices]
-    # sorted_entries = search_entries(q)
+    # entries = get_all_entries()
+    # embeddings = [
+    #     np.frombuffer(entry.embedding, dtype=np.float64) for entry in entries
+    # ]
+    # query_embedding = get_embedding(q)
+    # similarities = [cosine_similarity(query_embedding, emb) for emb in embeddings]
+    # indices = np.argsort(similarities)[::-1]
+    # sorted_entries = [entries[i] for i in indices]
+    sorted_entries = search_entries(q)
 
     return render_template_string(
         """

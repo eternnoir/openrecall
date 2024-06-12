@@ -24,6 +24,46 @@ def get_all_entries() -> List[Entry]:
         return [Entry(*result) for result in results]
 
 
+def get_sampled_entries(start_time: int, end_time: int, num_samples: int) -> List[Entry]:
+    with sqlite3.connect(db_path) as conn:
+        c = conn.cursor()
+        query = f"""
+        WITH RankedData AS (
+            SELECT 
+                *,
+                ROW_NUMBER() OVER (ORDER BY timestamp) AS row_num,
+                COUNT(*) OVER () AS total_rows
+            FROM 
+                entries
+            WHERE 
+                timestamp BETWEEN ? AND ?
+        ),
+        FilteredData AS (
+            SELECT 
+                *,
+                (row_num - 1) / (total_rows / ?) AS bucket
+            FROM 
+                RankedData
+        )
+        SELECT 
+            id, 
+            app, 
+            title, 
+            text, 
+            timestamp, 
+            embedding
+        FROM 
+            FilteredData
+        GROUP BY 
+            bucket
+        ORDER BY 
+            bucket;
+        """
+        c.execute(query, (start_time, end_time, num_samples))
+        results = c.fetchall()
+        return [Entry(*result) for result in results]
+
+
 def search_entries(query: str) -> List[Entry]:
     with sqlite3.connect(db_path) as conn:
         c = conn.cursor()
