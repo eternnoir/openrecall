@@ -7,7 +7,6 @@ from PIL import Image
 
 from openrecall.config import screenshots_path, args
 from openrecall.database import insert_entry
-from openrecall.nlp import get_embedding
 from openrecall.ocr import extract_text_from_image
 from openrecall.utils import get_active_app_name, get_active_window_title
 
@@ -76,11 +75,10 @@ def record_screenshots_thread():
                         optimize=True,
                     )
                     text = extract_text_from_image(screenshot)
-                    embedding = get_embedding(text)
                     active_app_name = get_active_app_name()
                     active_window_title = get_active_window_title()
                     insert_entry(
-                        text, timestamp, embedding, active_app_name, active_window_title
+                        text, timestamp, active_app_name, active_window_title
                     )
         except Exception as e:
             print(e)

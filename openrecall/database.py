@@ -23,8 +23,18 @@ def get_all_entries() -> List[Entry]:
         results = c.execute("SELECT * FROM entries").fetchall()
         return [Entry(*result) for result in results]
 
+def count_rows_in_range(start_time, end_time):
+    with sqlite3.connect(db_path) as conn:
+        c = conn.cursor()
+        count_query = "SELECT COUNT(*) FROM entries WHERE timestamp BETWEEN ? AND ?"
+        c.execute(count_query, (start_time, end_time))
+        return c.fetchone()[0]
 
 def get_sampled_entries(start_time: int, end_time: int, num_samples: int) -> List[Entry]:
+    actual_row_count = count_rows_in_range(start_time, end_time)
+
+    # Set num_samples to the minimum of actual_row_count and the desired num_samples
+    adjusted_num_samples = min(actual_row_count, num_samples)
     with sqlite3.connect(db_path) as conn:
         c = conn.cursor()
         query = f"""
@@ -59,7 +69,7 @@ def get_sampled_entries(start_time: int, end_time: int, num_samples: int) -> Lis
         ORDER BY 
             bucket;
         """
-        c.execute(query, (start_time, end_time, num_samples))
+        c.execute(query, (start_time, end_time, adjusted_num_samples))
         results = c.fetchall()
         return [Entry(*result) for result in results]
 
@@ -84,13 +94,13 @@ def get_timestamps() -> List[int]:
 
 
 def insert_entry(
-        text: str, timestamp: int, embedding: Any, app: str, title: str
+        text: str, timestamp: int, app: str, title: str
 ) -> None:
-    embedding_bytes = embedding.tobytes()
+
     with sqlite3.connect(db_path) as conn:
         c = conn.cursor()
         c.execute(
             "INSERT INTO entries (text, timestamp, embedding, app, title) VALUES (?, ?, ?, ?, ?)",
-            (text, timestamp, embedding_bytes, app, title),
+            (text, timestamp, "", app, title),
         )
         conn.commit()

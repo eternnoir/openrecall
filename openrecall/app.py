@@ -7,7 +7,6 @@ from jinja2 import BaseLoader
 
 from openrecall.config import appdata_folder, screenshots_path
 from openrecall.database import create_db, get_all_entries, get_timestamps, search_entries, get_sampled_entries
-from openrecall.nlp import cosine_similarity, get_embedding
 from openrecall.screenshot import record_screenshots_thread
 from openrecall.utils import human_readable_time, timestamp_to_human_readable
 
@@ -142,6 +141,7 @@ def timeline():
 def Download():
     start_time = request.args.get("start_time")
     end_time = request.args.get("end_time")
+    sample = request.args.get("sample")
     if not start_time:
         start_time = (datetime.now() - timedelta(hours=24)).timestamp()
     else:
@@ -151,11 +151,18 @@ def Download():
         end_time = datetime.now().timestamp()
     else:
         end_time = int(end_time)
-    result = get_sampled_entries(int(start_time), int(end_time), 100)
+
+    if not sample:
+        sample = (end_time - start_time)/5
+        if sample == 0:
+            sample = 1
+    else:
+        sample = int(sample)
+    result = get_sampled_entries(int(start_time), int(end_time), sample)
     formatted_entries = []
     for row in result:
-        timestamp_str = datetime.fromtimestamp(row.timestamp).strftime("%Y/%m/%d/%H:%M:%S")
-        formatted_entry = f"<Screenshot {timestamp_str}>\n{row.text}\n</Screenshot {timestamp_str}>\n"
+        timestamp_str = datetime.fromtimestamp(row.timestamp).strftime("%Y/%m/%d %H:%M:%S")
+        formatted_entry = f"<Screenshot {timestamp_str} {row.timestamp}>\n{row.text}\n</Screenshot {timestamp_str} {row.timestamp}>\n"
         formatted_entries.append(formatted_entry)
 
     # Join all formatted entries into a single string
